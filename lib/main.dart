@@ -1,9 +1,18 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
-
 import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
+}
+
+// 获取一句土味情话（有够土的🤮
+Future<String> getJsonData() async {
+  final response = await http.get(
+    Uri.https('api.uomg.com', '/api/rand.qinghua', {'format': 'json'}),
+  );
+  return jsonDecode(response.body)['content'];
 }
 
 class MyApp extends StatelessWidget {
@@ -54,6 +63,16 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   String _text = "hello";
+  bool _isLoading = true;
+  Timer? _timer;
+  Timer? _timer2;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _timer2?.cancel();
+    super.dispose();
+  }
 
   void _incrementCounter() async {
     setState(() {
@@ -63,11 +82,26 @@ class _MyHomePageState extends State<MyHomePage> {
       // 则不会触发build方法重新执行，界面也不会更新
       _counter += 2;
     });
-    try {
-      final response = await http.get(Uri.https('reqres.in', '/'));
-      setState(() => _text = '${response.statusCode}');
-    } catch (e) {
-      setState(() => _text = 'Error: $e');
+    if (_isLoading) {
+      try {
+        _text = '🤮${await getJsonData()}🤮';
+        setState(() => _text);
+      } catch (e) {
+        setState(() => _text = 'Error: $e');
+      }
+      _isLoading = false;
+      _timer = Timer(const Duration(seconds: 1), () {
+        _isLoading = true;
+      });
+    } else {
+      _timer2?.cancel();
+      setState(() {
+        _text = '点击频率请慢一些.';
+      });
+      _timer2 = Timer(const Duration(milliseconds: 1300), () async {
+        _text = '🤮${await getJsonData()}🤮';
+        setState(() => _text);
+      });
     }
   }
 
